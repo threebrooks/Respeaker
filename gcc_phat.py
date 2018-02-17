@@ -5,7 +5,7 @@
 import numpy as np
 
 
-def gcc_phat(sig, refsig, fs=1, max_tau=None, interp=1):
+def gcc_phat(sig, refsig, fs=1, max_tau=None):
     '''
     This function computes the offset between the signal sig and the reference signal refsig
     using the Generalized Cross Correlation - Phase Transform (GCC-PHAT)method.
@@ -19,20 +19,16 @@ def gcc_phat(sig, refsig, fs=1, max_tau=None, interp=1):
     REFSIG = np.fft.rfft(refsig, n=n)
     R = SIG * np.conj(REFSIG)
 
-    cc = np.fft.irfft(R / np.abs(R), n=(interp * n))
+    cc = np.fft.irfft(R / np.abs(R), n=n)
 
-    max_shift = int(interp * n / 2)
+    max_shift = int(n / 2)
     if max_tau:
-        max_shift = np.minimum(int(interp * fs * max_tau), max_shift)
+        max_shift = np.minimum(int(fs * max_tau), max_shift)
 
     cc = np.concatenate((cc[-max_shift:], cc[:max_shift+1]))
+    cc = np.abs(cc)
 
-    # find max cross correlation index
-    shift = np.argmax(np.abs(cc)) - max_shift
-
-    tau = shift / float(interp * fs)
-    
-    return tau, cc
+    return cc, max_shift
 
 
 def main():

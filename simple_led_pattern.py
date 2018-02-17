@@ -20,7 +20,7 @@ class SimpleLedPattern(object):
         position = int((direction + 15) / (360 / self.pixels_number)) % self.pixels_number
 
         pixels = [0, 0, 0, 0] * self.pixels_number
-        pixels[position * 4 + 2] = 255
+        pixels[position * 4 + 2] = 45
 
         self.show(pixels)
 

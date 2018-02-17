@@ -9,12 +9,12 @@ The hardware is respeaker 4 mic array:
 
 import time
 from voice_engine.source import Source
-from doa_respeaker_4mic_array import DOA
+from doa_respeaker_full import DOA
 from pixels import pixels
 
 def main():
-    src = Source(rate=16000, channels=4, frames_size=320)
-    doa = DOA(rate=16000)
+    src = Source(rate=48000, channels=4, frames_size=320)
+    doa = DOA(rate=48000)
 
     src.link(doa)
 
