@@ -10,6 +10,7 @@ def gcc_phat(sig, refsig, fs=1, max_tau=None):
     This function computes the offset between the signal sig and the reference signal refsig
     using the Generalized Cross Correlation - Phase Transform (GCC-PHAT)method.
     '''
+
     
     # make sure the length for the FFT is larger or equal than len(sig) + len(refsig)
     n = sig.shape[0] + refsig.shape[0]
