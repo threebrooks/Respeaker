@@ -13,7 +13,7 @@ from doa_respeaker_full import DOA
 from pixels import pixels
 
 def main():
-    src = Source(rate=48000, channels=4, frames_size=320)
+    src = Source(rate=48000, channels=4, frames_size=4800)
     doa = DOA(rate=48000)
 
     src.link(doa)

@@ -30,26 +30,34 @@ class DOA(Element):
 
         self.pairs = [
                 {
-                    "mic1": 1,
-                    "mic2": 3,
+                    "mic1": 0,
+                    "mic2": 2,
                     "max_tdoa": MAX_TDOA_DIAG,
-                    "angle_offset": 0 #.25*math.pi
+                    "angle_offset": self.deg2Rad(-135)
                 },
 #                {
-#                    "mic1": 0,
-#                    "mic2": 2,
+#                    "mic1": 1,
+#                    "mic2": 3,
 #                    "max_tdoa": MAX_TDOA_DIAG,
-#                    "angle_offset": -0.25*math.pi
+#                    "angle_offset": 0.5*math.pi
 #                },
                 ]
 
     def put(self, data):
         self.queue.append(data)
 
+        #print "len: "+str(len(data))
+
+        #self.audioWriter.write(data)
+        #self.audioWriter.flush()
+
         super(DOA, self).put(data)
 
     def rad2Deg(self, rad):
         return 180.0*rad/math.pi
+
+    def deg2Rad(self, deg):
+        return deg*math.pi/180.0
 
     def get_direction(self):
         tau = [0, 0]
@@ -58,7 +66,7 @@ class DOA(Element):
         buf = b''.join(self.queue)
         buf = np.fromstring(buf, dtype='int16')
 
-        #self.angleHisto = [0]*len(self.angleHisto)
+        self.angleHisto = [1]*len(self.angleHisto)
 
         for arrayIdx, dic in enumerate(self.pairs):
             m1idx = dic["mic1"]
@@ -70,7 +78,7 @@ class DOA(Element):
               tau = (i - max_shift) / float(self.sample_rate)
               ratVal = tau / maxTDOA
               angle = math.pi/2-np.arcsin(ratVal)
-
+works well with 0 offset, but jumps with anything else
               theta1 = math.fmod((angle-angleOffset+4.0*math.pi), 2.0*math.pi)
               theta1Idx = (int)(theta1/self.anglePerDiv) 
               self.angleHisto[theta1Idx] += cc[i]
@@ -80,12 +88,15 @@ class DOA(Element):
               self.angleHisto[theta2Idx] += cc[i]
               #print "cv: {} theta1: {} cc: {} ".format(ratVal, self.rad2Deg(theta1), self.angleHisto[theta1Idx])
               #print "cv: {} theta2: {} cc: {} ".format(ratVal, self.rad2Deg(theta2), self.angleHisto[theta2Idx])
-              #print "sineVal: {} arcsine: {} theta1: {} theta2: {} angleOffset {} ".format(sineVal, self.rad2Deg(arcsine), self.rad2Deg(theta1), self.rad2Deg(theta2), self.rad2Deg(angleOffset))
+              #print "ratVal: {} arcsine: {} theta1: {} theta2: {} angleOffset {} ".format(sineVal, self.rad2Deg(arcsine), self.rad2Deg(theta1), self.rad2Deg(theta2), self.rad2Deg(angleOffset))
 
             #sys.exit(0)
        
+        best_index = np.argmax(self.angleHisto) 
+        for i in range(0, len(self.angleHisto)):
+            print str(self.rad2Deg(i*self.anglePerDiv))+": "+str(self.angleHisto[i])+("  ######" if i == best_index else "")
         #print self.angleHisto
-        best_guess = self.rad2Deg(np.argmax(self.angleHisto)*self.anglePerDiv )
+        best_guess = self.rad2Deg(best_index*self.anglePerDiv )
         #print "best_guess: "+str(best_guess)
         #sys.exit(0)
         return best_guess
