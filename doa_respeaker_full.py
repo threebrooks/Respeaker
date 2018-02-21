@@ -24,7 +24,7 @@ class DOA(Element):
         self.queue = collections.deque(maxlen=chunks)
         self.sample_rate = rate
 
-        self.angleDivs = 16
+        self.angleDivs = 24
         self.anglePerDiv = 2*math.pi/self.angleDivs
         self.angleHisto = [0]*self.angleDivs
 

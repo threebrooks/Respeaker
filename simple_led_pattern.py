@@ -21,8 +21,9 @@ class SimpleLedPattern(object):
         pixels = [0, 0, 0, 0] * self.pixels_number
         for i in range(0,len(angleScores)):
             position = int((angleScores[i][0] + 15) / (360 / self.pixels_number)) % self.pixels_number
-            bright = 50*math.pow(angleScores[i][1], 4.0)
-            pixels[position * 4 + 2] = bright
+            bright = int(50*math.pow(angleScores[i][1], 4.0))
+            if (bright > pixels[position * 4 + 2]): 
+                pixels[position * 4 + 2] = bright
 
         self.show(pixels)
 

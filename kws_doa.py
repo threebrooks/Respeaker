@@ -21,7 +21,7 @@ def main():
     src.recursive_start()
     while True:
         try:
-            time.sleep(1)
+            time.sleep(0.2)
             angleScores = doa.get_direction()
             pixels.showAngleScores(angleScores)
         except KeyboardInterrupt:
