@@ -26,28 +26,11 @@ class Pixels:
         self.thread.daemon = True
         self.thread.start()
 
-        self.last_direction = None
-
-    def wakeup(self, direction=0):
-        self.last_direction = direction
+    def showAngleScores(self, angleScores):
         def f():
-            self.pattern.wakeup(direction)
+            self.pattern.showAngleScores(angleScores)
 
         self.put(f)
-
-    def listen(self):
-        if self.last_direction:
-            def f():
-                self.pattern.wakeup(self.last_direction)
-            self.put(f)
-        else:
-            self.put(self.pattern.listen)
-
-    def think(self):
-        self.put(self.pattern.think)
-
-    def speak(self):
-        self.put(self.pattern.speak)
 
     def off(self):
         self.put(self.pattern.off)
@@ -76,12 +59,6 @@ if __name__ == '__main__':
     while True:
 
         try:
-            pixels.wakeup()
-            time.sleep(3)
-            pixels.think()
-            time.sleep(3)
-            pixels.speak()
-            time.sleep(6)
             pixels.off()
             time.sleep(3)
         except KeyboardInterrupt:

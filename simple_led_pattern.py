@@ -1,6 +1,7 @@
 
 import numpy
 import time
+import math
 
 
 class SimpleLedPattern(object):
@@ -16,11 +17,12 @@ class SimpleLedPattern(object):
         self.show = show
         self.stop = False
 
-    def wakeup(self, direction=0):
-        position = int((direction + 15) / (360 / self.pixels_number)) % self.pixels_number
-
+    def showAngleScores(self, angleScores):
         pixels = [0, 0, 0, 0] * self.pixels_number
-        pixels[position * 4 + 2] = 45
+        for i in range(0,len(angleScores)):
+            position = int((angleScores[i][0] + 15) / (360 / self.pixels_number)) % self.pixels_number
+            bright = 50*math.pow(angleScores[i][1], 4.0)
+            pixels[position * 4 + 2] = bright
 
         self.show(pixels)
 

@@ -22,9 +22,8 @@ def main():
     while True:
         try:
             time.sleep(1)
-            position = doa.get_direction()
-            pixels.wakeup(position)
-            print('detected at direction {}'.format(position))
+            angleScores = doa.get_direction()
+            pixels.showAngleScores(angleScores)
         except KeyboardInterrupt:
             break
 
