@@ -22,10 +22,9 @@ class Pixels:
         self.thread.daemon = True
         self.thread.start()
 
-    def showAngleScores(self, angleScores):
+    def showAngle(self, angle):
         pixels = [0, 0, 0, 0] * self.PIXELS_N
-        maxAngle = np.argmax(angleScores)
-        position = int((maxAngle + 15) / (360 / self.PIXELS_N)) % self.PIXELS_N
+        position = int((angle + 15) / (360 / self.PIXELS_N)) % self.PIXELS_N
         pixels[position * 4 + 1] = 50
         self.show(pixels)
 

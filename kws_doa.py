@@ -1,16 +1,8 @@
-"""
-Record audio from 4 mic array, and then search the keyword "snowboy".
-After finding the keyword, Direction Of Arrival (DOA) is estimated.
-
-The hardware is respeaker 4 mic array:
-    https://www.seeedstudio.com/ReSpeaker-4-Mic-Array-for-Raspberry-Pi-p-2941.html
-"""
-
-
 import time
 from voice_engine.source import Source
 from doa_respeaker_full import DOA
 from pixels import pixels
+import numpy as np
 
 def main():
     src = Source(rate=48000, channels=4, frames_size=4800)
@@ -23,7 +15,10 @@ def main():
         try:
             time.sleep(0.2)
             angleScores = doa.get_direction()
-            pixels.showAngleScores(angleScores)
+            maxAngle = np.argmax(angleScores)
+            pixels.showAngle(maxAngle)
+            shifts = doa.get_shifts(maxAngle)
+            print str(shifts)
         except KeyboardInterrupt:
             break
 

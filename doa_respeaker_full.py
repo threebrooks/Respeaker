@@ -116,3 +116,20 @@ class DOA(Element):
             outList[angle] /= maxScore
 
         return outList
+
+    def get_shifts(self, degAngle):
+        radAngle = self.deg2Rad(degAngle)
+        outShifts = []
+        dirX = math.sin(radAngle)
+        dirY = math.cos(radAngle)
+        for arrayIdx, mic_coord in enumerate(self.mic_coords):
+            micX = mic_coord[0]
+            micY = mic_coord[1]
+            tau = (dirX*micX+dirY*micY)/SOUND_SPEED
+            outShifts.append(int(round(tau*self.sample_rate)))
+        maxShift = np.max(outShifts)
+        for i in range(0, len(outShifts)):
+            outShifts[i] -= maxShift
+            outShifts[i] *= -1
+        return outShifts
+
