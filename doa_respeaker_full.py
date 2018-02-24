@@ -12,10 +12,7 @@ import math
 import sys
 
 SOUND_SPEED = 340.0
-
-MIC_DISTANCE_SIDE = 0.0572
-MAX_TDOA_SIDE = MIC_DISTANCE_SIDE / float(SOUND_SPEED)
-MAX_TDOA_DIAG = math.sqrt(2.0)*MAX_TDOA_SIDE
+MIC_DIST_SIDE = 0.0572
 
 class DOA(Element):
     def __init__(self, rate=48000, chunks=10):
@@ -24,31 +21,15 @@ class DOA(Element):
         self.audio_queue = collections.deque(maxlen=chunks)
         self.sample_rate = rate
 
-        self.pairs = [
-                {
-                    "mic1": 0,
-                    "mic2": 2,
-                    "max_tdoa": MAX_TDOA_DIAG,
-                    "angle_offset": self.deg2Rad(135)
-                },
-                {
-                    "mic1": 1,
-                    "mic2": 3,
-                    "max_tdoa": MAX_TDOA_DIAG,
-                    "angle_offset": self.deg2Rad(45)
-                },
-                {
-                    "mic1": 0,
-                    "mic2": 1,
-                    "max_tdoa": MAX_TDOA_SIDE,
-                    "angle_offset": self.deg2Rad(180)
-                },
-                {
-                    "mic1": 1,
-                    "mic2": 2,
-                    "max_tdoa": MAX_TDOA_SIDE,
-                    "angle_offset": self.deg2Rad(90)
-                },
+        self.mic_coords = [
+                [-MIC_DIST_SIDE/2, -MIC_DIST_SIDE/2], # 0
+                [-MIC_DIST_SIDE/2, MIC_DIST_SIDE/2], # 1
+                [MIC_DIST_SIDE/2, MIC_DIST_SIDE/2], # 2
+                [MIC_DIST_SIDE/2, -MIC_DIST_SIDE/2], # 3
+                ]
+
+        self.mic_pairs = [
+                [0,2], [1,3], [0,1], [1,2]
                 ]
 
     def put(self, data):
@@ -82,17 +63,27 @@ class DOA(Element):
         angle = math.pi/2-self.cappedArcSin(tau / maxTDOA)
         return angle
 
+    def getMicDistance(self, mic1, mic2):
+        xDiff = mic1[0]-mic2[0]
+        yDiff = mic1[1]-mic2[1]
+        return math.sqrt(xDiff*xDiff+yDiff*yDiff)
+
+    def getMicAngle(self, mic1, mic2):
+        xDiff = mic2[0]-mic1[0]
+        yDiff = mic2[1]-mic1[1]
+        return math.pi/2+math.atan2(yDiff, xDiff)
+
     def get_direction(self):
         buf = b''.join(self.audio_queue)
         buf = np.fromstring(buf, dtype='int16')
 
-        angleHisto = [[ -2.0 for x in range(360)] for y in range(len(self.pairs))]
+        angleHisto = [[ -2.0 for x in range(360)] for y in range(len(self.mic_pairs))]
 
-        for arrayIdx, dic in enumerate(self.pairs):
-            m1idx = dic["mic1"]
-            m2idx = dic["mic2"]
-            maxTDOA = dic["max_tdoa"]
-            angleOffset = dic["angle_offset"]
+        for arrayIdx, mic_list in enumerate(self.mic_pairs):
+            m1idx = mic_list[0]
+            m2idx = mic_list[1]
+            maxTDOA = self.getMicDistance(self.mic_coords[m1idx], self.mic_coords[m2idx])/SOUND_SPEED
+            angleOffset = self.getMicAngle(self.mic_coords[m1idx], self.mic_coords[m2idx])
             cc, max_shift = gcc_phat(buf[m2idx::4], buf[m1idx::4], fs=self.sample_rate, max_tau=maxTDOA)
             
             for shift in range(0, len(cc)):
@@ -115,7 +106,7 @@ class DOA(Element):
         outList = [0] * 360
         for angle in range(0, 360):
             sumVal = 0
-            for arrayIdx, dic in enumerate(self.pairs):
+            for arrayIdx, dic in enumerate(self.mic_pairs):
                 if (angleHisto[arrayIdx][angle] != -2.0):
                     sumVal += angleHisto[arrayIdx][angle] 
             outList[angle] = sumVal
