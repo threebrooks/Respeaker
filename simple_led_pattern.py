@@ -1,5 +1,5 @@
 
-import numpy
+import numpy as np
 import time
 import math
 
@@ -19,11 +19,13 @@ class SimpleLedPattern(object):
 
     def showAngleScores(self, angleScores):
         pixels = [0, 0, 0, 0] * self.pixels_number
-        for i in range(0,len(angleScores)):
-            position = int((angleScores[i][0] + 15) / (360 / self.pixels_number)) % self.pixels_number
-            bright = int(50*math.pow(angleScores[i][1], 4.0))
+        maxAngle = np.argmax(angleScores)
+        for angle in range(0,len(angleScores)):
+            position = int((angle + 15) / (360 / self.pixels_number)) % self.pixels_number
+            bright = int(50*math.pow(angleScores[angle], 4.0))
             if (bright > pixels[position * 4 + 2]): 
-                pixels[position * 4 + 2] = bright
+                rgbIdx = 1 if angle == maxAngle else 2
+                pixels[position * 4 + rgbIdx] = bright
 
         self.show(pixels)
 

@@ -9,7 +9,7 @@ import collections
 from gcc_phat import gcc_phat
 from voice_engine.element import Element
 import math
-
+import sys
 
 SOUND_SPEED = 340.0
 
@@ -21,12 +21,8 @@ class DOA(Element):
     def __init__(self, rate=48000, chunks=10):
         super(DOA, self).__init__()
 
-        self.queue = collections.deque(maxlen=chunks)
+        self.audio_queue = collections.deque(maxlen=chunks)
         self.sample_rate = rate
-
-        self.angleDivs = 24
-        self.anglePerDiv = 2*math.pi/self.angleDivs
-        self.angleHisto = [0]*self.angleDivs
 
         self.pairs = [
                 {
@@ -56,12 +52,7 @@ class DOA(Element):
                 ]
 
     def put(self, data):
-        self.queue.append(data)
-
-        #print "len: "+str(len(data))
-
-        #self.audioWriter.write(data)
-        #self.audioWriter.flush()
+        self.audio_queue.append(data)
 
         super(DOA, self).put(data)
 
@@ -71,18 +62,31 @@ class DOA(Element):
     def deg2Rad(self, deg):
         return deg*math.pi/180.0
 
-    def wrapAngle(self, angle):
+    def wrapRadAngle(self, angle):
         twoPi = 2.0*math.pi
         return angle-twoPi*math.floor(angle/twoPi)
 
-    def get_direction(self):
-        tau = [0, 0]
-        theta = [0, 0]
+    def wrapDegAngle(self, angle):
+        return angle-360*int(math.floor(angle/360))
 
-        buf = b''.join(self.queue)
+    def cappedArcSin(self, val):
+        if (val < -1.0):
+            return -math.pi/2
+        elif (val > 1.0):
+            return math.pi/2
+        else:
+            return np.arcsin(val)
+
+    def shift2Angle(self, shift, maxTDOA):
+        tau = shift / float(self.sample_rate)
+        angle = math.pi/2-self.cappedArcSin(tau / maxTDOA)
+        return angle
+
+    def get_direction(self):
+        buf = b''.join(self.audio_queue)
         buf = np.fromstring(buf, dtype='int16')
 
-        self.angleHisto = [0]*len(self.angleHisto)
+        angleHisto = [[ -2.0 for x in range(360)] for y in range(len(self.pairs))]
 
         for arrayIdx, dic in enumerate(self.pairs):
             m1idx = dic["mic1"]
@@ -90,20 +94,34 @@ class DOA(Element):
             maxTDOA = dic["max_tdoa"]
             angleOffset = dic["angle_offset"]
             cc, max_shift = gcc_phat(buf[m2idx::4], buf[m1idx::4], fs=self.sample_rate, max_tau=maxTDOA)
-            for i in range(0, len(cc)):
-              tau = (i - max_shift) / float(self.sample_rate)
-              ratVal = tau / maxTDOA
-              angle = math.pi/2-np.arcsin(ratVal)
-              theta1 = self.wrapAngle(angle-angleOffset)
-              theta1Idx = (int)(theta1/self.anglePerDiv) 
-              self.angleHisto[theta1Idx] += cc[i]
+            
+            for shift in range(0, len(cc)):
+              startAngle = int(round(self.rad2Deg(self.shift2Angle(shift-max_shift+0.5, maxTDOA)-angleOffset)))
+              endAngle = int(round(self.rad2Deg(self.shift2Angle(shift-max_shift-0.5, maxTDOA)-angleOffset)))
 
-              theta2 = self.wrapAngle((2*math.pi-angle)-angleOffset)
-              theta2Idx = (int)(theta2/self.anglePerDiv) 
-              self.angleHisto[theta2Idx] += cc[i]
+              for angle in range(startAngle, endAngle+1):
+                  wrapAngle = self.wrapDegAngle(angle)
+                  if (cc[shift] > angleHisto[arrayIdx][wrapAngle]):
+                      angleHisto[arrayIdx][wrapAngle] = cc[shift]
 
-        outList = []
-        maxScore = np.max(self.angleHisto)
-        for i in range(0, len(self.angleHisto)):
-            outList.append([self.rad2Deg(i*self.anglePerDiv), self.angleHisto[i]/maxScore])
+              startAngle = int(round(self.rad2Deg((2*math.pi-self.shift2Angle(shift-max_shift-0.5, maxTDOA))-angleOffset)))
+              endAngle = int(round(self.rad2Deg((2*math.pi-self.shift2Angle(shift-max_shift+0.5, maxTDOA))-angleOffset)))
+
+              for angle in range(startAngle, endAngle+1):
+                  wrapAngle = self.wrapDegAngle(angle)
+                  if (cc[shift] > angleHisto[arrayIdx][wrapAngle]):
+                      angleHisto[arrayIdx][wrapAngle] = cc[shift]
+
+        outList = [0] * 360
+        for angle in range(0, 360):
+            sumVal = 0
+            for arrayIdx, dic in enumerate(self.pairs):
+                if (angleHisto[arrayIdx][angle] != -2.0):
+                    sumVal += angleHisto[arrayIdx][angle] 
+            outList[angle] = sumVal
+
+        maxScore = np.max(outList)
+        for angle in range(0, len(outList)):
+            outList[angle] /= maxScore
+
         return outList
