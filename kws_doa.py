@@ -1,14 +1,17 @@
 import time
 from voice_engine.source import Source
-from doa_respeaker_full import DOA
+from doa import DOA
+from delay_and_sum import DelayAndSum
 from pixels import pixels
 import numpy as np
 
 def main():
     src = Source(rate=48000, channels=4, frames_size=4800)
     doa = DOA(rate=48000)
+    das = DelayAndSum(channels=4)
 
     src.link(doa)
+    src.link(das)
 
     src.recursive_start()
     while True:
@@ -18,7 +21,7 @@ def main():
             maxAngle = np.argmax(angleScores)
             pixels.showAngle(maxAngle)
             shifts = doa.get_shifts(maxAngle)
-            print str(shifts)
+            das.set_shifts(shifts)
         except KeyboardInterrupt:
             break
 
